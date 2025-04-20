@@ -32,26 +32,29 @@ dropArea.addEventListener('drop', e => {
 fileInput.addEventListener('change', () => handleFiles(fileInput.files));
 
 function handleFiles(files) {
+  if (files.length === 0) return;
+
   progressContainer.style.display = 'block';
   let total = files.length;
   let done = 0;
 
   Array.from(files).forEach(file => {
-    if (file.type === 'image/heic' || file.name.endsWith('.heic')) {
+    if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
       heic2any({ blob: file, toType: 'image/jpeg' })
         .then(convertedBlob => {
-          processFile(convertedBlob, 'image/jpeg', total, () => {
+          processFile(convertedBlob, 'image/jpeg', file.name + '.jpg', () => {
             done++;
             updateProgress(done, total);
           });
         })
         .catch(error => {
+          showToast(`❌ Gagal konversi ${file.name}`);
           console.error('Gagal konversi HEIC:', error);
           done++;
           updateProgress(done, total);
         });
     } else {
-      processFile(file, file.type, total, () => {
+      processFile(file, file.type, file.name, () => {
         done++;
         updateProgress(done, total);
       });
@@ -59,7 +62,7 @@ function handleFiles(files) {
   });
 }
 
-function processFile(file, fileType, total, callback) {
+function processFile(file, fileType, fileName, callback) {
   const reader = new FileReader();
   reader.onload = () => {
     const fileUrl = reader.result;
@@ -67,7 +70,7 @@ function processFile(file, fileType, total, callback) {
     const cellPreview = document.createElement('td');
     const cellName = document.createElement('td');
     const cellDownload = document.createElement('td');
-    cellName.textContent = file.name;
+    cellName.textContent = fileName;
 
     let folder = "";
 
@@ -93,61 +96,41 @@ function processFile(file, fileType, total, callback) {
     }
 
     const downloadLink = document.createElement('a');
-    downloadLink.href = fileUrl;
-    downloadLink.download = file.name;
+    downloadLink.href = '#';
     downloadLink.textContent = 'Download';
+    downloadLink.onclick = () => downloadFile(fileUrl);
     cellDownload.appendChild(downloadLink);
 
     row.appendChild(cellPreview);
     row.appendChild(cellName);
     row.appendChild(cellDownload);
 
-    uploadToCloudinary(file, folder);
+    uploadToCloudinary(file, folder, fileName);
     callback();
   };
   reader.readAsDataURL(file);
 }
 
-function openModal(fileUrl, fileType) {
-  const container = document.getElementById('modal-preview-container');
-  container.innerHTML = '';
-
-  if (fileType === 'image') {
-    const img = document.createElement('img');
-    img.src = fileUrl;
-    img.classList.add('img-fluid');
-    container.appendChild(img);
-  } else if (fileType === 'video') {
-    const vid = document.createElement('video');
-    vid.src = fileUrl;
-    vid.controls = true;
-    vid.classList.add('img-fluid');
-    container.appendChild(vid);
-  }
-
-  const modal = new bootstrap.Modal(document.getElementById('previewModal'));
-  modal.show();
-}
-
-function uploadToCloudinary(file, folder) {
+function uploadToCloudinary(file, folder, fileName) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', preset);
   formData.append('folder', folder);
 
-  fetch(url, {
-    method: 'POST',
-    body: formData
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.secure_url) {
-      console.log('Upload sukses:', data.secure_url);
-    } else {
-      console.error('Upload gagal:', data);
-    }
-  })
-  .catch(err => console.error('Error upload:', err));
+  fetch(url, { method: 'POST', body: formData })
+    .then(response => response.json())
+    .then(data => {
+      if (data.secure_url) {
+        console.log(`✅ Upload sukses: ${fileName}`);
+      } else {
+        showToast(`❌ Upload gagal: ${fileName}`);
+        console.error('Upload error:', data);
+      }
+    })
+    .catch(error => {
+      showToast(`❌ Upload error: ${fileName}`);
+      console.error('Fetch error:', error);
+    });
 }
 
 function updateProgress(done, total) {
@@ -156,56 +139,41 @@ function updateProgress(done, total) {
   progressBar.textContent = `${progress}%`;
 
   if (done === total) {
-    showToast(`${total} file berhasil diproses!`);
     progressContainer.style.display = 'none';
     progressBar.style.width = '0%';
     progressBar.textContent = '0%';
+    showToast(`${total} file selesai diproses.`);
   }
+}
+
+function openModal(fileUrl, fileType) {
+  const modalPreviewContainer = document.getElementById('modal-preview-container');
+  if (fileType === 'image') {
+    const img = document.createElement('img');
+    img.src = fileUrl;
+    img.classList.add('img-fluid');
+    modalPreviewContainer.innerHTML = '';
+    modalPreviewContainer.appendChild(img);
+  } else if (fileType === 'video') {
+    const vid = document.createElement('video');
+    vid.src = fileUrl;
+    vid.classList.add('img-fluid');
+    vid.controls = true;
+    modalPreviewContainer.innerHTML = '';
+    modalPreviewContainer.appendChild(vid);
+  }
+  const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+  previewModal.show();
+}
+
+function downloadFile(url) {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = url.split('/').pop();
+  link.click();
 }
 
 function showToast(message) {
   document.getElementById('toast-message').textContent = message;
   toast.show();
 }
-
-// Particle Canvas Effect
-const canvas = document.getElementById('particles');
-const ctx = canvas.getContext('2d');
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let particles = [];
-let colors = ['#f3c9c9', '#fff', '#ff5a5a'];
-
-function createParticle(e) {
-  let x = e.x;
-  let y = e.y;
-  let color = colors[Math.floor(Math.random() * colors.length)];
-  let size = Math.random() * 5 + 1;
-  let speedX = Math.random() * 2 - 1;
-  let speedY = Math.random() * 2 - 1;
-
-  particles.push({ x, y, color, size, speedX, speedY });
-}
-
-function animateParticles() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  particles.forEach((p, i) => {
-    p.x += p.speedX;
-    p.y += p.speedY;
-    p.size *= 0.98;
-
-    if (p.size <= 0.2) particles.splice(i, 1);
-
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-  });
-
-  requestAnimationFrame(animateParticles);
-}
-
-canvas.addEventListener('mousemove', e => createParticle(e));
-animateParticles();
