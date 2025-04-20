@@ -198,19 +198,3 @@ canvas.addEventListener('mousemove', (e) => createParticle(e));
 animateParticles();
 
 
-window.addEventListener('scroll', () => {
-    document.querySelectorAll('.scroll-fade').forEach((el) => {
-        if (el.getBoundingClientRect().top < window.innerHeight) {
-            el.classList.add('visible');
-        }
-    });
-});
-window.onload = function() {
-    const element = document.querySelector('.typing-effect');
-    element.style.animationPlayState = 'running';
-	
-	  const entranceCard = document.querySelector('.entrance-card');
-    setTimeout(() => {
-        entranceCard.classList.add('visible');
-    }, 500);
-};
