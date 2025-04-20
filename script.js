@@ -198,3 +198,49 @@ canvas.addEventListener('mousemove', (e) => createParticle(e));
 animateParticles();
 
 
+// Menangani pemilihan file
+document.getElementById('file-input').addEventListener('change', function(event) {
+    const files = event.target.files;
+    Array.from(files).forEach(file => {
+        if (file.type === 'image/heic' || file.name.endsWith('.heic')) {
+            // Jika file dalam format HEIC, konversi ke JPEG
+            heic2any({ blob: file, toType: 'image/jpeg' })
+                .then(function(convertedBlob) {
+                    // Buat URL objek dari gambar yang telah dikonversi
+                    const url = URL.createObjectURL(convertedBlob);
+                    
+                    // Lakukan sesuatu dengan gambar yang sudah dikonversi, seperti preview atau upload
+                    previewImage(url);
+                })
+                .catch(function(error) {
+                    console.error('Gagal mengkonversi HEIC:', error);
+                });
+        } else {
+            // Jika bukan HEIC, langsung preview gambar
+            previewImage(URL.createObjectURL(file));
+        }
+    });
+});
+
+// Fungsi untuk preview gambar dalam modal
+function previewImage(imageUrl) {
+    const previewContainer = document.getElementById('modal-preview-container');
+    const imgElement = document.createElement('img');
+    imgElement.src = imageUrl;
+    imgElement.classList.add('img-fluid');
+    
+    // Hapus konten lama dan masukkan gambar baru
+    previewContainer.innerHTML = '';
+    previewContainer.appendChild(imgElement);
+    
+    // Tampilkan modal preview
+    $('#previewModal').modal('show');
+}
+
+// Fungsi untuk menampilkan halaman yang relevan
+function showPage(pageId) {
+    const pages = ['uploadPage', 'photoPage', 'videoPage'];
+    pages.forEach(page => {
+        document.getElementById(page).style.display = (page === pageId) ? 'block' : 'none';
+    });
+}
