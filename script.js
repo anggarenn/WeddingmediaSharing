@@ -55,7 +55,7 @@ const url = "https://api.cloudinary.com/v1_1/djglvd8dc/upload";
             });
         } else if (file.type.startsWith('video/')) {
           if (file.type === 'video/quicktime' || file.name.toLowerCase().endsWith('.mov')) {
-            convertVideoToMp4(file)
+            convertMovToMp4(file)
               .then(convertedBlob => {
                 processFile(convertedBlob, 'video/mp4', file.name + '.mp4', () => {
                   done++;
@@ -80,6 +80,26 @@ const url = "https://api.cloudinary.com/v1_1/djglvd8dc/upload";
             updateProgress(done, total);
           });
         }
+      });
+    }
+
+    function convertMovToMp4(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const data = reader.result;
+          const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+
+          ffmpeg.load().then(() => {
+            ffmpeg.FS('writeFile', file.name, new Uint8Array(data));
+            ffmpeg.run('-i', file.name, '-vcodec', 'libx264', '-acodec', 'aac', '-strict', 'experimental', 'output.mp4').then(() => {
+              const output = ffmpeg.FS('readFile', 'output.mp4');
+              const outputBlob = new Blob([output.buffer], { type: 'video/mp4' });
+              resolve(outputBlob);
+            }).catch(reject);
+          });
+        };
+        reader.readAsArrayBuffer(file);
       });
     }
 
