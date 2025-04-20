@@ -1,5 +1,8 @@
-const url = "https://api.cloudinary.com/v1_1/djglvd8dc/upload";
-const preset = "wedding";
+// Cloudinary config
+const cloudinaryConfig = {
+  url: "https://api.cloudinary.com/v1_1/djglvd8dc/upload",
+  preset: "wedding"
+};
 
 function showPage(pageId) {
   const pages = ['uploadPage', 'photoPage', 'videoPage'];
@@ -8,6 +11,7 @@ function showPage(pageId) {
   });
 }
 
+// Element references
 const dropArea = document.getElementById('drop-area');
 const fileInput = document.getElementById('file-input');
 const selectButton = document.getElementById('select-button');
@@ -15,6 +19,7 @@ const progressBar = document.getElementById('progress-bar');
 const progressContainer = document.getElementById('progress-container');
 const toast = new bootstrap.Toast(document.getElementById('uploadToast'));
 
+// Event listeners
 selectButton.addEventListener('click', () => fileInput.click());
 dropArea.addEventListener('click', () => fileInput.click());
 
@@ -114,10 +119,10 @@ function processFile(file, fileType, fileName, callback) {
 function uploadToCloudinary(file, folder, fileName) {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', preset);
+  formData.append('upload_preset', cloudinaryConfig.preset);
   formData.append('folder', folder);
 
-  fetch(url, { method: 'POST', body: formData })
+  fetch(cloudinaryConfig.url, { method: 'POST', body: formData })
     .then(response => response.json())
     .then(data => {
       if (data.secure_url) {
